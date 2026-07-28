@@ -3,23 +3,22 @@
 import { auth, signOut } from "@/auth";
 import { fetchVetEmails } from "@/lib/gmail";
 import { parseVetEmail } from "@/lib/parseVetEmail";
-import { aggregateRecords, type DatedRecord } from "@/lib/aggregate";
-import type { Pet, Vaccination } from "@/lib/types";
+import { parseVetImage, type ImageMediaType } from "@/lib/parseVetImage";
+import type { DatedRecord } from "@/lib/aggregate";
 
-export interface SyncResult {
+export interface RecordsResult {
   ok: boolean;
   error: string | null;
-  pets: Pet[];
-  vaccinations: Vaccination[];
-  emailsScanned: number;
-  skipped: number;
+  records: DatedRecord[];
+  /** Emails scanned, or 1 for a screenshot import. */
+  scanned: number;
 }
 
-function failure(error: string): SyncResult {
-  return { ok: false, error, pets: [], vaccinations: [], emailsScanned: 0, skipped: 0 };
+function failure(error: string): RecordsResult {
+  return { ok: false, error, records: [], scanned: 0 };
 }
 
-export async function syncVetEmails(fromAddress: string): Promise<SyncResult> {
+export async function syncVetEmails(fromAddress: string): Promise<RecordsResult> {
   const session = await auth();
   if (!session?.accessToken || session.error) {
     return failure("Gmail is not connected. Sign in again.");
@@ -30,10 +29,7 @@ export async function syncVetEmails(fromAddress: string): Promise<SyncResult> {
 
   try {
     const emails = await fetchVetEmails(session.accessToken, fromAddress.trim());
-    if (emails.length === 0) {
-      return { ok: true, error: null, pets: [], vaccinations: [], emailsScanned: 0, skipped: 0 };
-    }
-    const dated: DatedRecord[] = (
+    const records: DatedRecord[] = (
       await Promise.all(
         emails.map(async (email) =>
           (await parseVetEmail(email)).map((record) => ({
@@ -43,10 +39,29 @@ export async function syncVetEmails(fromAddress: string): Promise<SyncResult> {
         ),
       )
     ).flat();
-    const { pets, vaccinations, skipped } = aggregateRecords(dated);
-    return { ok: true, error: null, pets, vaccinations, emailsScanned: emails.length, skipped };
+    return { ok: true, error: null, records, scanned: emails.length };
   } catch (error) {
     return failure(error instanceof Error ? error.message : "Sync failed.");
+  }
+}
+
+export async function importScreenshot(
+  base64: string,
+  mediaType: ImageMediaType,
+): Promise<RecordsResult> {
+  const session = await auth();
+  if (!session) {
+    return failure("Sign in first.");
+  }
+
+  try {
+    const parsed = await parseVetImage(base64, mediaType);
+    // A screenshot reflects the current state, so treat it as most recent.
+    const receivedAt = Date.now();
+    const records = parsed.map((record) => ({ record, receivedAt }));
+    return { ok: true, error: null, records, scanned: 1 };
+  } catch (error) {
+    return failure(error instanceof Error ? error.message : "Import failed.");
   }
 }
 
