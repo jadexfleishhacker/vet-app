@@ -36,8 +36,8 @@ export default async function Home() {
   const connected = Boolean(session?.accessToken && !session.error);
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-5 py-10 sm:py-14">
-      <header className="mb-10">
+    <div className="mx-auto w-full max-w-3xl px-5 py-8">
+      <header className="mb-6">
         <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
           Vet reminders
         </p>

@@ -23,32 +23,47 @@ export function VaccinationSchedule({
   const sorted = [...vaccinations].sort((a, b) =>
     a.nextDueDate.localeCompare(b.nextDueDate),
   );
+  const statuses = sorted.map((v) => getReminderStatus(v.nextDueDate).urgency);
+  const overdue = statuses.filter((u) => u === "overdue").length;
+  const dueSoon = statuses.filter((u) => u === "due-soon").length;
+
+  const summary =
+    overdue > 0
+      ? `${overdue} overdue`
+      : dueSoon > 0
+        ? `${dueSoon} due soon`
+        : "all up to date";
+  const age = pet.birthDate ? ` · ${formatAge(pet.birthDate)}` : "";
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <header className="flex items-center gap-3 border-b border-slate-100 p-5 dark:border-slate-800">
+    <details className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <summary className="flex cursor-pointer list-none items-center gap-3 p-4 [&::-webkit-details-marker]:hidden">
         <span
-          className="flex h-11 w-11 items-center justify-center rounded-full text-2xl"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-xl"
           style={{ backgroundColor: `${pet.color}22` }}
         >
           {pet.emoji}
         </span>
-        <div>
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+        <div className="min-w-0 flex-1">
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">
             {pet.name}
           </h3>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {pet.birthDate ? `${pet.breed} · ${formatAge(pet.birthDate)}` : pet.breed}
+            {sorted.length} vaccine{sorted.length === 1 ? "" : "s"} · {summary}
+            {age}
           </p>
         </div>
-      </header>
-      <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+        <span className="text-slate-400 transition-transform group-open:rotate-180 dark:text-slate-500">
+          ▾
+        </span>
+      </summary>
+      <ul className="divide-y divide-slate-100 border-t border-slate-100 dark:divide-slate-800 dark:border-slate-800">
         {sorted.map((vaccination) => {
           const status = getReminderStatus(vaccination.nextDueDate);
           return (
             <li
               key={vaccination.id}
-              className="flex flex-wrap items-center gap-x-4 gap-y-2 p-5"
+              className="flex flex-wrap items-center gap-x-4 gap-y-2 p-4"
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
@@ -59,9 +74,11 @@ export function VaccinationSchedule({
                     {recurrenceLabel(vaccination.recurrenceMonths)}
                   </span>
                 </div>
-                <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-                  {vaccination.description}
-                </p>
+                {vaccination.description && (
+                  <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+                    {vaccination.description}
+                  </p>
+                )}
                 <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
                   {vaccination.administeredDate
                     ? `Last given ${formatDate(vaccination.administeredDate)}`
@@ -81,6 +98,6 @@ export function VaccinationSchedule({
           );
         })}
       </ul>
-    </section>
+    </details>
   );
 }

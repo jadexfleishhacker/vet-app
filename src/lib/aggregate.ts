@@ -1,7 +1,7 @@
 import type { Pet, Species, Vaccination } from "./types";
 import type { ParsedRecord } from "./parseVetEmail";
 
-const SPECIES_STYLE: Record<Species | "other", { emoji: string; color: string }> = {
+const SPECIES_STYLE: Record<"dog" | "cat" | "other", { emoji: string; color: string }> = {
   dog: { emoji: "🐕", color: "#d97706" },
   cat: { emoji: "🐈", color: "#7c3aed" },
   other: { emoji: "🐾", color: "#0891b2" },
@@ -10,8 +10,25 @@ const SPECIES_STYLE: Record<Species | "other", { emoji: string; color: string }>
 /** Default recurrence when an email doesn't state one. Most core vaccines are annual. */
 const DEFAULT_RECURRENCE_MONTHS = 12;
 
+/** A parsed record paired with when its source email arrived (ms since epoch). */
+export interface DatedRecord {
+  record: ParsedRecord;
+  receivedAt: number;
+}
+
+/** Case/accent/spacing-insensitive key so "Leò", "Leo", and "leo " merge. */
+function normalizeKey(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
 function slug(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return normalizeKey(value).replace(/\s+/g, "-") || "unknown";
 }
 
 export interface AggregateResult {
@@ -21,46 +38,96 @@ export interface AggregateResult {
   skipped: number;
 }
 
-/** Turn parsed email records into the pets + vaccinations the dashboard renders. */
-export function aggregateRecords(records: ParsedRecord[]): AggregateResult {
-  const pets = new Map<string, Pet>();
-  const vaccinations: Vaccination[] = [];
+interface PetGroup {
+  displayName: string;
+  /** Most recent email that mentioned this pet, used to pick the display name. */
+  nameSeenAt: number;
+  speciesVotes: Record<"dog" | "cat" | "other", number>;
+  /** Latest record per vaccine key. */
+  byVaccine: Map<string, { record: ParsedRecord; receivedAt: number }>;
+}
+
+function resolveSpecies(votes: PetGroup["speciesVotes"]): "dog" | "cat" | "other" {
+  if (votes.dog >= votes.cat && votes.dog >= votes.other) return "dog";
+  if (votes.cat >= votes.other) return "cat";
+  return "other";
+}
+
+/**
+ * Turn parsed email records into the pets + vaccinations the dashboard renders.
+ * Records are merged per pet (by normalized name) and deduped per vaccine,
+ * keeping the record from the most recently received email.
+ */
+export function aggregateRecords(dated: DatedRecord[]): AggregateResult {
+  const groups = new Map<string, PetGroup>();
   let skipped = 0;
 
-  for (const record of records) {
+  for (const { record, receivedAt } of dated) {
     if (!record.nextDueDate) {
       skipped += 1;
       continue;
     }
 
     const name = record.petName?.trim() || "Unknown pet";
-    const species: Species = record.species === "other" ? "dog" : record.species;
-    const petId = slug(`${name}-${record.species}`) || "unknown-pet";
+    const petKey = normalizeKey(name) || "unknown pet";
 
-    if (!pets.has(petId)) {
-      const style = SPECIES_STYLE[record.species];
-      pets.set(petId, {
-        id: petId,
-        name,
-        species,
-        breed: record.species === "other" ? "Pet" : `${species[0].toUpperCase()}${species.slice(1)}`,
-        birthDate: null,
-        color: style.color,
-        emoji: style.emoji,
-      });
+    let group = groups.get(petKey);
+    if (!group) {
+      group = {
+        displayName: name,
+        nameSeenAt: receivedAt,
+        speciesVotes: { dog: 0, cat: 0, other: 0 },
+        byVaccine: new Map(),
+      };
+      groups.set(petKey, group);
     }
 
-    vaccinations.push({
-      id: `${petId}-${slug(record.vaccineName)}-${record.nextDueDate}`,
-      petId,
-      name: record.vaccineName,
-      description: record.description ?? "",
-      administeredDate: record.administeredDate,
-      nextDueDate: record.nextDueDate,
-      recurrenceMonths: record.recurrenceMonths ?? DEFAULT_RECURRENCE_MONTHS,
-      source: "email",
-    });
+    // Prefer the display name from the most recent email that named this pet.
+    if (receivedAt >= group.nameSeenAt) {
+      group.displayName = name;
+      group.nameSeenAt = receivedAt;
+    }
+    group.speciesVotes[record.species] += 1;
+
+    const vaccineKey = normalizeKey(record.vaccineName);
+    const existing = group.byVaccine.get(vaccineKey);
+    if (!existing || receivedAt >= existing.receivedAt) {
+      group.byVaccine.set(vaccineKey, { record, receivedAt });
+    }
   }
 
-  return { pets: [...pets.values()], vaccinations, skipped };
+  const pets: Pet[] = [];
+  const vaccinations: Vaccination[] = [];
+
+  for (const [petKey, group] of groups) {
+    const category = resolveSpecies(group.speciesVotes);
+    const style = SPECIES_STYLE[category];
+    const species: Species = category === "cat" ? "cat" : "dog";
+    const petId = slug(petKey);
+
+    pets.push({
+      id: petId,
+      name: group.displayName,
+      species,
+      breed: category === "other" ? "Pet" : category === "cat" ? "Cat" : "Dog",
+      birthDate: null,
+      color: style.color,
+      emoji: style.emoji,
+    });
+
+    for (const { record } of group.byVaccine.values()) {
+      vaccinations.push({
+        id: `${petId}-${slug(record.vaccineName)}`,
+        petId,
+        name: record.vaccineName,
+        description: record.description ?? "",
+        administeredDate: record.administeredDate,
+        nextDueDate: record.nextDueDate!,
+        recurrenceMonths: record.recurrenceMonths ?? DEFAULT_RECURRENCE_MONTHS,
+        source: "email",
+      });
+    }
+  }
+
+  return { pets, vaccinations, skipped };
 }

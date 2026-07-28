@@ -33,7 +33,7 @@ export function Dashboard({ pets, vaccinations }: DashboardProps) {
 
   return (
     <>
-      <section className="mb-10 grid gap-4 sm:grid-cols-2">
+      <section className="mb-8 grid gap-3 sm:grid-cols-2">
         {pets.map((pet) => (
           <PetCard
             key={pet.id}
@@ -43,14 +43,14 @@ export function Dashboard({ pets, vaccinations }: DashboardProps) {
         ))}
       </section>
 
-      <section className="mb-12">
-        <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-100">
+      <section className="mb-8">
+        <h2 className="mb-3 text-xl font-semibold text-slate-900 dark:text-slate-100">
           Needs attention
         </h2>
         <ReminderList reminders={reminders} petsById={petsById} />
       </section>
 
-      <section className="space-y-6">
+      <section className="space-y-3">
         <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
           Full schedule
         </h2>

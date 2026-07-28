@@ -5,6 +5,8 @@ export interface VetEmail {
   subject: string;
   /** RFC 2822 date header, as sent. */
   date: string;
+  /** Milliseconds since epoch Gmail received the message; used to order records. */
+  internalDate: number;
   /** Decoded plain-text body. */
   body: string;
 }
@@ -22,6 +24,7 @@ interface GmailPart {
 
 interface GmailMessage {
   id: string;
+  internalDate?: string;
   payload: {
     headers: GmailHeader[];
     mimeType: string;
@@ -80,7 +83,7 @@ export async function fetchVetEmails(
   );
 
   const messages = list.messages ?? [];
-  return Promise.all(
+  const emails = await Promise.all(
     messages.map(async ({ id }) => {
       const message = await gmailFetch<GmailMessage>(
         `/messages/${id}?format=full`,
@@ -90,8 +93,12 @@ export async function fetchVetEmails(
         id: message.id,
         subject: getHeader(message.payload.headers, "Subject"),
         date: getHeader(message.payload.headers, "Date"),
+        internalDate: Number(message.internalDate ?? 0),
         body: extractBody(message.payload).trim(),
       };
     }),
   );
+
+  // Newest first, so aggregation can keep the most recent record per vaccine.
+  return emails.sort((a, b) => b.internalDate - a.internalDate);
 }

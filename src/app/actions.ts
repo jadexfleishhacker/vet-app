@@ -3,7 +3,7 @@
 import { auth, signOut } from "@/auth";
 import { fetchVetEmails } from "@/lib/gmail";
 import { parseVetEmail } from "@/lib/parseVetEmail";
-import { aggregateRecords } from "@/lib/aggregate";
+import { aggregateRecords, type DatedRecord } from "@/lib/aggregate";
 import type { Pet, Vaccination } from "@/lib/types";
 
 export interface SyncResult {
@@ -33,8 +33,17 @@ export async function syncVetEmails(fromAddress: string): Promise<SyncResult> {
     if (emails.length === 0) {
       return { ok: true, error: null, pets: [], vaccinations: [], emailsScanned: 0, skipped: 0 };
     }
-    const records = (await Promise.all(emails.map(parseVetEmail))).flat();
-    const { pets, vaccinations, skipped } = aggregateRecords(records);
+    const dated: DatedRecord[] = (
+      await Promise.all(
+        emails.map(async (email) =>
+          (await parseVetEmail(email)).map((record) => ({
+            record,
+            receivedAt: email.internalDate,
+          })),
+        ),
+      )
+    ).flat();
+    const { pets, vaccinations, skipped } = aggregateRecords(dated);
     return { ok: true, error: null, pets, vaccinations, emailsScanned: emails.length, skipped };
   } catch (error) {
     return failure(error instanceof Error ? error.message : "Sync failed.");
