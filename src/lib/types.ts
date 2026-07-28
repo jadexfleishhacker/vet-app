@@ -5,8 +5,8 @@ export interface Pet {
   name: string;
   species: Species;
   breed: string;
-  /** ISO date (YYYY-MM-DD). */
-  birthDate: string;
+  /** ISO date (YYYY-MM-DD), or null when unknown (e.g. parsed from email). */
+  birthDate: string | null;
   /** Accent color (hex) used for the pet's avatar and timeline. */
   color: string;
   emoji: string;

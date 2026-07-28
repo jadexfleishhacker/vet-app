@@ -1,12 +1,19 @@
-import type { Pet } from "@/lib/types";
+import type { Pet, Vaccination } from "@/lib/types";
 import { getActiveReminders } from "@/lib/reminders";
-import { getVaccinationsForPet } from "@/lib/data";
 import { formatAge } from "@/lib/format";
 
-export function PetCard({ pet }: { pet: Pet }) {
-  const reminders = getActiveReminders(getVaccinationsForPet(pet.id));
+interface PetCardProps {
+  pet: Pet;
+  vaccinations: Vaccination[];
+}
+
+export function PetCard({ pet, vaccinations }: PetCardProps) {
+  const reminders = getActiveReminders(vaccinations);
   const overdue = reminders.filter((r) => r.status.urgency === "overdue").length;
   const dueSoon = reminders.filter((r) => r.status.urgency === "due-soon").length;
+  const subtitle = pet.birthDate
+    ? `${pet.breed} · ${formatAge(pet.birthDate)}`
+    : pet.breed;
 
   return (
     <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -21,7 +28,7 @@ export function PetCard({ pet }: { pet: Pet }) {
           {pet.name}
         </p>
         <p className="truncate text-sm text-slate-500 dark:text-slate-400">
-          {pet.breed} · {formatAge(pet.birthDate)}
+          {subtitle}
         </p>
       </div>
       <div className="text-right text-sm">

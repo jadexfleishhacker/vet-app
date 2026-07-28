@@ -1,18 +1,39 @@
-import { pets, vaccinations, getVaccinationsForPet } from "@/lib/data";
-import { getActiveReminders } from "@/lib/reminders";
-import { PetCard } from "@/components/PetCard";
-import { ReminderList } from "@/components/ReminderList";
-import { VaccinationSchedule } from "@/components/VaccinationSchedule";
+import { auth, signIn } from "@/auth";
+import { pets as seedPets, vaccinations as seedVaccinations } from "@/lib/data";
+import { Dashboard } from "@/components/Dashboard";
+import { SyncView } from "@/components/SyncView";
 
-export default function Home() {
-  const petsById = new Map(pets.map((pet) => [pet.id, pet]));
-  const reminders = getActiveReminders(vaccinations);
-  const overdueCount = reminders.filter(
-    (r) => r.status.urgency === "overdue",
-  ).length;
-  const dueSoonCount = reminders.filter(
-    (r) => r.status.urgency === "due-soon",
-  ).length;
+function ConnectCard() {
+  return (
+    <section className="mb-10 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+        Connect your Gmail
+      </h2>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        Sign in with Google to pull vaccination reminders from your vet&apos;s
+        emails. The app requests read-only access and never sends email.
+      </p>
+      <form
+        action={async () => {
+          "use server";
+          await signIn("google", { redirectTo: "/" });
+        }}
+        className="mt-4"
+      >
+        <button
+          type="submit"
+          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+        >
+          Connect Gmail
+        </button>
+      </form>
+    </section>
+  );
+}
+
+export default async function Home() {
+  const session = await auth();
+  const connected = Boolean(session?.accessToken && !session.error);
 
   return (
     <div className="mx-auto w-full max-w-3xl px-5 py-10 sm:py-14">
@@ -23,38 +44,22 @@ export default function Home() {
         <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
           Keep your pets up to date
         </h1>
-        <p className="mt-2 text-slate-500 dark:text-slate-400">
-          {overdueCount > 0 || dueSoonCount > 0
-            ? `${overdueCount} overdue and ${dueSoonCount} due soon across ${pets.length} pets.`
-            : "Everything is on track."}
-        </p>
       </header>
 
-      <section className="mb-10 grid gap-4 sm:grid-cols-2">
-        {pets.map((pet) => (
-          <PetCard key={pet.id} pet={pet} />
-        ))}
-      </section>
-
-      <section className="mb-12">
-        <h2 className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-100">
-          Needs attention
-        </h2>
-        <ReminderList reminders={reminders} petsById={petsById} />
-      </section>
-
-      <section className="space-y-6">
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-          Full schedule
-        </h2>
-        {pets.map((pet) => (
-          <VaccinationSchedule
-            key={pet.id}
-            pet={pet}
-            vaccinations={getVaccinationsForPet(pet.id)}
-          />
-        ))}
-      </section>
+      {connected ? (
+        <SyncView
+          initialVetEmail={process.env.VET_EMAIL_ADDRESS ?? ""}
+          userEmail={session?.user?.email ?? null}
+        />
+      ) : (
+        <>
+          <ConnectCard />
+          <p className="mb-4 text-sm font-medium text-slate-400 dark:text-slate-500">
+            Preview with sample data
+          </p>
+          <Dashboard pets={seedPets} vaccinations={seedVaccinations} />
+        </>
+      )}
     </div>
   );
 }

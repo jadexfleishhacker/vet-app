@@ -38,7 +38,7 @@ export function VaccinationSchedule({
             {pet.name}
           </h3>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {pet.breed} · {formatAge(pet.birthDate)}
+            {pet.birthDate ? `${pet.breed} · ${formatAge(pet.birthDate)}` : pet.breed}
           </p>
         </div>
       </header>
