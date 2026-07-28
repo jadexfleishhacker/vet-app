@@ -1,6 +1,11 @@
 import type { Pet, Vaccination } from "@/lib/types";
 import { getReminderStatus } from "@/lib/reminders";
-import { formatAge, formatDate, formatRelativeDays } from "@/lib/format";
+import {
+  formatAge,
+  formatDate,
+  formatMonthName,
+  formatRelativeDays,
+} from "@/lib/format";
 import { UrgencyBadge } from "./UrgencyBadge";
 
 interface VaccinationScheduleProps {
@@ -23,7 +28,7 @@ export function VaccinationSchedule({
   const sorted = [...vaccinations].sort((a, b) =>
     a.nextDueDate.localeCompare(b.nextDueDate),
   );
-  const statuses = sorted.map((v) => getReminderStatus(v.nextDueDate).urgency);
+  const statuses = sorted.map((v) => getReminderStatus(v).urgency);
   const overdue = statuses.filter((u) => u === "overdue").length;
   const dueSoon = statuses.filter((u) => u === "due-soon").length;
 
@@ -59,7 +64,8 @@ export function VaccinationSchedule({
       </summary>
       <ul className="divide-y divide-slate-100 border-t border-slate-100 dark:divide-slate-800 dark:border-slate-800">
         {sorted.map((vaccination) => {
-          const status = getReminderStatus(vaccination.nextDueDate);
+          const status = getReminderStatus(vaccination);
+          const isMonthly = status.urgency === "monthly";
           return (
             <li
               key={vaccination.id}
@@ -80,18 +86,22 @@ export function VaccinationSchedule({
                   </p>
                 )}
                 <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
-                  {vaccination.administeredDate
-                    ? `Last given ${formatDate(vaccination.administeredDate)}`
-                    : "No prior dose on record"}
+                  {isMonthly
+                    ? "Self-administered · first week of each month"
+                    : vaccination.administeredDate
+                      ? `Last given ${formatDate(vaccination.administeredDate)}`
+                      : "No prior dose on record"}
                 </p>
               </div>
               <div className="flex flex-col items-end gap-1">
                 <UrgencyBadge urgency={status.urgency} />
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                  {formatDate(vaccination.nextDueDate)}
+                  {formatDate(status.dueDate)}
                 </span>
                 <span className="text-xs text-slate-400 dark:text-slate-500">
-                  {formatRelativeDays(status.daysUntilDue)}
+                  {isMonthly
+                    ? `first week of ${formatMonthName(status.dueDate)}`
+                    : formatRelativeDays(status.daysUntilDue)}
                 </span>
               </div>
             </li>

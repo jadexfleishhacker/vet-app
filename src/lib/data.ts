@@ -1,4 +1,4 @@
-import type { Pet, Vaccination } from "./types";
+import type { Pet, Vaccination, VaccinationKind } from "./types";
 import { addDays, addMonths, startOfToday, toISODate } from "./dates";
 
 export const pets: Pet[] = [
@@ -35,6 +35,7 @@ interface SeedVaccination {
   dueInDays: number;
   /** When false, the first dose has not been given yet. */
   hasPriorDose: boolean;
+  kind?: VaccinationKind;
 }
 
 const SEED: SeedVaccination[] = [
@@ -78,6 +79,15 @@ const SEED: SeedVaccination[] = [
     recurrenceMonths: 12,
     dueInDays: 12,
     hasPriorDose: true,
+  },
+  {
+    petId: "buddy",
+    name: "Flea & tick preventative",
+    description: "Self-administered monthly preventative.",
+    recurrenceMonths: 1,
+    dueInDays: 0,
+    hasPriorDose: false,
+    kind: "monthly",
   },
   // Milo (cat)
   {
@@ -124,6 +134,7 @@ function buildVaccinations(now: Date = new Date()): Vaccination[] {
     return {
       id: `${seed.petId}-${seed.name.toLowerCase().replace(/\s+/g, "-")}`,
       petId: seed.petId,
+      kind: seed.kind ?? "vaccine",
       name: seed.name,
       description: seed.description,
       administeredDate: administered ? toISODate(administered) : null,

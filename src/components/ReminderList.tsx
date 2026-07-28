@@ -1,6 +1,6 @@
 import type { Pet } from "@/lib/types";
 import type { Reminder } from "@/lib/reminders";
-import { formatDate, formatRelativeDays } from "@/lib/format";
+import { formatDate, formatMonthName, formatRelativeDays } from "@/lib/format";
 import { URGENCY_STYLES } from "./urgencyStyles";
 import { UrgencyBadge } from "./UrgencyBadge";
 
@@ -26,6 +26,13 @@ export function ReminderList({ reminders, petsById }: ReminderListProps) {
       {reminders.map(({ vaccination, status }) => {
         const pet = petsById.get(vaccination.petId);
         const style = URGENCY_STYLES[status.urgency];
+        const isMonthly = status.urgency === "monthly";
+        const subtitle = isMonthly
+          ? `${pet?.name} · first week of ${formatMonthName(status.dueDate)}`
+          : `${pet?.name} · due ${formatDate(status.dueDate)}`;
+        const timing = isMonthly
+          ? "each month"
+          : formatRelativeDays(status.daysUntilDue);
         return (
           <li
             key={vaccination.id}
@@ -41,13 +48,13 @@ export function ReminderList({ reminders, petsById }: ReminderListProps) {
                   {vaccination.name}
                 </p>
                 <p className="truncate text-sm text-slate-500 dark:text-slate-400">
-                  {pet?.name} · due {formatDate(vaccination.nextDueDate)}
+                  {subtitle}
                 </p>
               </div>
               <div className="flex flex-col items-end gap-1">
                 <UrgencyBadge urgency={status.urgency} />
                 <span className="text-xs text-slate-500 dark:text-slate-400">
-                  {formatRelativeDays(status.daysUntilDue)}
+                  {timing}
                 </span>
               </div>
             </div>

@@ -1,5 +1,6 @@
 import type { Pet, Species, Vaccination } from "./types";
 import type { ParsedRecord } from "./parseVetEmail";
+import { isMonthlyPreventative } from "./preventatives";
 
 const SPECIES_STYLE: Record<"dog" | "cat" | "other", { emoji: string; color: string }> = {
   dog: { emoji: "🐕", color: "#d97706" },
@@ -116,14 +117,16 @@ export function aggregateRecords(dated: DatedRecord[]): AggregateResult {
     });
 
     for (const { record } of group.byVaccine.values()) {
+      const monthly = isMonthlyPreventative(record.vaccineName);
       vaccinations.push({
         id: `${petId}-${slug(record.vaccineName)}`,
         petId,
+        kind: monthly ? "monthly" : "vaccine",
         name: record.vaccineName,
         description: record.description ?? "",
         administeredDate: record.administeredDate,
         nextDueDate: record.nextDueDate!,
-        recurrenceMonths: record.recurrenceMonths ?? DEFAULT_RECURRENCE_MONTHS,
+        recurrenceMonths: monthly ? 1 : record.recurrenceMonths ?? DEFAULT_RECURRENCE_MONTHS,
         source: "email",
       });
     }

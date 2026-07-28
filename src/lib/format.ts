@@ -11,6 +11,13 @@ export function formatDate(iso: string): string {
   return dateFormatter.format(parseISODate(iso));
 }
 
+const monthFormatter = new Intl.DateTimeFormat("en-US", { month: "long" });
+
+/** e.g. "August". */
+export function formatMonthName(iso: string): string {
+  return monthFormatter.format(parseISODate(iso));
+}
+
 /** e.g. "in 12 days", "today", "18 days ago". */
 export function formatRelativeDays(days: number): string {
   if (days === 0) return "today";

@@ -35,4 +35,10 @@ export const URGENCY_STYLES: Record<Urgency, UrgencyStyle> = {
     bar: "bg-slate-400",
     tint: "bg-slate-50 dark:bg-slate-900/40",
   },
+  monthly: {
+    label: "Monthly",
+    badge: "bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300",
+    bar: "bg-indigo-500",
+    tint: "bg-indigo-50 dark:bg-indigo-950/30",
+  },
 };

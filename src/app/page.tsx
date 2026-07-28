@@ -48,7 +48,7 @@ export default async function Home() {
 
       {connected ? (
         <SyncView
-          initialVetEmail={process.env.VET_EMAIL_ADDRESS ?? ""}
+          initialVetEmail={process.env.VET_EMAIL_ADDRESS ?? "hello@drtreat.com"}
           userEmail={session?.user?.email ?? null}
         />
       ) : (

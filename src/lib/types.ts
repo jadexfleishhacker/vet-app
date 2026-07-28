@@ -15,9 +15,13 @@ export interface Pet {
 /** Where a vaccination record originated. Email ingestion (Phase 3) sets "email". */
 export type VaccinationSource = "seed" | "manual" | "email";
 
+/** "monthly" = self-administered monthly preventative (flea/tick), reminded not overdue. */
+export type VaccinationKind = "vaccine" | "monthly";
+
 export interface Vaccination {
   id: string;
   petId: string;
+  kind: VaccinationKind;
   /** Vaccine or visit name, e.g. "Rabies", "DHPP", "Annual wellness exam". */
   name: string;
   /** Short description of what it covers. */
