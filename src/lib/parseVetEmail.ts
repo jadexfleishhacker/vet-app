@@ -46,9 +46,11 @@ If a field is not stated in the email, use null rather than guessing.`;
 export async function parseVetEmail(email: VetEmail): Promise<ParsedRecord[]> {
   const client = new Anthropic();
   const response = await client.messages.parse({
-    model: "claude-opus-4-8",
+    // Haiku 4.5 is plenty capable for this structured extraction and ~5x
+    // cheaper than Opus. It does not support adaptive thinking, so no
+    // `thinking` param here.
+    model: "claude-haiku-4-5",
     max_tokens: 4096,
-    thinking: { type: "adaptive" },
     system: SYSTEM_PROMPT,
     output_config: { format: zodOutputFormat(ExtractionSchema) },
     messages: [
