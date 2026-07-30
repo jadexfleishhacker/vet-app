@@ -1,11 +1,10 @@
 import { auth, signIn } from "@/auth";
-import { pets as seedPets, vaccinations as seedVaccinations } from "@/lib/data";
-import { Dashboard } from "@/components/Dashboard";
-import { SyncView } from "@/components/SyncView";
+import { DataControls } from "@/components/DataControls";
+import { HomeSummary } from "@/components/HomeSummary";
 
 function ConnectCard() {
   return (
-    <section className="mb-10 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
         Connect your Gmail
       </h2>
@@ -47,19 +46,15 @@ export default async function Home() {
       </header>
 
       {connected ? (
-        <SyncView
+        <DataControls
           initialVetEmail={process.env.VET_EMAIL_ADDRESS ?? "hello@drtreat.com"}
           userEmail={session?.user?.email ?? null}
         />
       ) : (
-        <>
-          <ConnectCard />
-          <p className="mb-4 text-sm font-medium text-slate-400 dark:text-slate-500">
-            Preview with sample data
-          </p>
-          <Dashboard pets={seedPets} vaccinations={seedVaccinations} />
-        </>
+        <ConnectCard />
       )}
+
+      <HomeSummary />
     </div>
   );
 }

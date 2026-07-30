@@ -11,6 +11,7 @@ import { UrgencyBadge } from "./UrgencyBadge";
 interface VaccinationScheduleProps {
   pet: Pet;
   vaccinations: Vaccination[];
+  defaultOpen?: boolean;
 }
 
 function recurrenceLabel(months: number): string {
@@ -24,6 +25,7 @@ function recurrenceLabel(months: number): string {
 export function VaccinationSchedule({
   pet,
   vaccinations,
+  defaultOpen = false,
 }: VaccinationScheduleProps) {
   const sorted = [...vaccinations].sort((a, b) =>
     a.nextDueDate.localeCompare(b.nextDueDate),
@@ -41,7 +43,10 @@ export function VaccinationSchedule({
   const age = pet.birthDate ? ` · ${formatAge(pet.birthDate)}` : "";
 
   return (
-    <details className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <details
+      open={defaultOpen}
+      className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
+    >
       <summary className="flex cursor-pointer list-none items-center gap-3 p-4 [&::-webkit-details-marker]:hidden">
         <span
           className="flex h-10 w-10 items-center justify-center rounded-full text-xl"
