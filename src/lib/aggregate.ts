@@ -1,6 +1,7 @@
 import type { Pet, Species, Vaccination } from "./types";
 import type { ParsedRecord } from "./parseVetEmail";
 import { isMonthlyPreventative } from "./preventatives";
+import { isValidISODate } from "./dates";
 
 const SPECIES_STYLE: Record<"dog" | "cat" | "other", { emoji: string; color: string }> = {
   dog: { emoji: "🐕", color: "#d97706" },
@@ -64,7 +65,8 @@ export function aggregateRecords(dated: DatedRecord[]): AggregateResult {
   let skipped = 0;
 
   for (const { record, receivedAt } of dated) {
-    if (!record.nextDueDate) {
+    // Require a real due date; a partial/garbage date would crash rendering.
+    if (!isValidISODate(record.nextDueDate)) {
       skipped += 1;
       continue;
     }
@@ -124,7 +126,10 @@ export function aggregateRecords(dated: DatedRecord[]): AggregateResult {
         kind: monthly ? "monthly" : "vaccine",
         name: record.vaccineName,
         description: record.description ?? "",
-        administeredDate: record.administeredDate,
+        administeredDate: isValidISODate(record.administeredDate)
+          ? record.administeredDate
+          : null,
+        // Guaranteed non-null: only records passing isValidISODate reach byVaccine.
         nextDueDate: record.nextDueDate!,
         recurrenceMonths: monthly ? 1 : record.recurrenceMonths ?? DEFAULT_RECURRENCE_MONTHS,
         source: "email",

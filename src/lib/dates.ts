@@ -6,6 +6,12 @@ export function parseISODate(iso: string): Date {
   return new Date(year, month - 1, day);
 }
 
+/** True when `iso` is a real YYYY-MM-DD date. Guards against partial/garbage LLM output. */
+export function isValidISODate(iso: string | null | undefined): iso is string {
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
+  return !Number.isNaN(parseISODate(iso).getTime());
+}
+
 /** Format a Date as an ISO date (YYYY-MM-DD) using local parts. */
 export function toISODate(date: Date): string {
   const year = date.getFullYear();

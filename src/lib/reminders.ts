@@ -1,5 +1,11 @@
 import type { Vaccination } from "./types";
-import { daysBetween, parseISODate, startOfToday, toISODate } from "./dates";
+import {
+  daysBetween,
+  isValidISODate,
+  parseISODate,
+  startOfToday,
+  toISODate,
+} from "./dates";
 
 /** How a due date reads today, most-to-least pressing. */
 export type Urgency = "overdue" | "due-soon" | "upcoming" | "scheduled" | "monthly";
@@ -43,6 +49,11 @@ export function getReminderStatus(
 ): ReminderStatus {
   if (vaccination.kind === "monthly") {
     return getMonthlyStatus(now);
+  }
+
+  // Defensive: a malformed date should never crash the dashboard render.
+  if (!isValidISODate(vaccination.nextDueDate)) {
+    return { urgency: "scheduled", daysUntilDue: Infinity, dueDate: vaccination.nextDueDate };
   }
 
   const daysUntilDue = daysBetween(

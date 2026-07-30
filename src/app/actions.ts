@@ -41,6 +41,7 @@ export async function syncVetEmails(fromAddress: string): Promise<RecordsResult>
     ).flat();
     return { ok: true, error: null, records, scanned: emails.length };
   } catch (error) {
+    console.error("[syncVetEmails] failed:", error);
     return failure(error instanceof Error ? error.message : "Sync failed.");
   }
 }
